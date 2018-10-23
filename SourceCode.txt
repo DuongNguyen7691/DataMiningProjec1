@@ -1,0 +1,385 @@
+library(readr)
+library(dplyr)
+library(cluster) #for PAM
+library(fpc) # for DBSCAN
+install.packages("dbscan")
+library(dbscan) #for DBSCAN
+install.packages("factoextra")
+library(ggplot2)
+library(factoextra) #for visualizing kmeans result
+
+
+pima <- read_csv("pima.csv", 
+                  col_names = FALSE)
+#change columns name for readability
+colnames(pima) = c("times_pregnant", "glucose_concentration", 
+                   "blood_pressure", "skin_thickness", "serum_insulin", "bmi", 
+                   'diabetes_function', "age", "class_var")
+
+
+#QUESTION 0: Transform pima to zpima by z-scoring first 8 attributes, copying the 9th
+zpima = apply(pima[1:8], MARGIN = 2,FUN = scale) #z-scoring first 8 attributes
+zpima = cbind(zpima, pima$class_var) #copying the 9th variable
+zpima = data.frame(zpima)
+colnames(zpima)[which(colnames(zpima) == 'V9')] = 'class_var'
+#END QUESTION 0
+
+
+#QUESTION 1 : write function : purity
+#a is assigments/cluster of objects, b is "ground truth", if a is 0 then it is outlier cluster
+#the function returns purity, and vector of purity and percentage of outliers if outliers flag is set to TRUE
+purity <- function(a,b,outliers = FALSE){
+  
+  #create confusion matrix where
+  #columns = counts of ground truths in each cluster
+  #rows = name of clusters
+  conf_mat = table(a,b)
+  total_ele = sum(conf_mat)
+  
+  classes = rownames(conf_mat)
+  
+  #if we have outlier class, then
+     if (is.element("0", classes)){
+        #vector storing outliers
+        num_outliers = sum(conf_mat[which(rownames(conf_mat) == 0), ])
+          #eliminate the row of outliers
+        conf_mat = conf_mat[-which(rownames(conf_mat) == 0), ]
+      }# end if
+     else #if there is no outlier class/row
+        num_outliers = 0
+ 
+  total_counts = 0 #counts of all max values in each cluster (rows)
+  
+  #increment total_counts by maximum value in each row/cluster
+  nrows = nrow(conf_mat)
+  
+  #avoid error: argument of length 0 if nrow yields NULL
+  if (is.null(nrows))
+    nrows = 0
+  
+  # for the cases later when all we get is outlier class
+  if(nrows == 0){
+    if (outliers == T)
+      return (c(0,0))
+    else
+      return (0)
+  }#end if
+    
+  
+  for (i in 1:nrows)
+    total_counts = total_counts + max(conf_mat[i, ])
+ 
+  
+  #purity = total_counts / total elements in ground truth without ones belonging to outlier cluster
+  purity = total_counts / sum(conf_mat)
+ 
+  #if outliers flag is set to TRUE, then return the vector of purity and percentage of outliers
+  if (outliers == TRUE){
+    percentage_of_outliers = num_outliers / total_ele
+    return (c(purity,percentage_of_outliers))
+  }
+  
+  else
+   return (purity)
+} #end function purity
+#END QUESTION 1
+
+
+
+#QUESTION 2:write wabs-dist(u,v,w) function
+#the function returns distance between u and v as sum of absolute weighted (w) differences 
+#in other word, return abs(u-v)*w
+wabs_dist <- function (u,v,w = rep(1,length(x))){
+  return (sum(abs(u-v)*w))
+  
+}# end wabs_dist function
+#END QUESTION 2
+
+
+#QUESTION 3: write function create_dm(x,w) 
+#the function returns a distance matrix for objects in dataframe x using weight w
+create_dm <- function (x,w = rep(1,length(x))){
+  #create an empty matrix with dimension of nrow(x) by nrow(x)
+  mat_size = nrow(x)
+  mat = matrix(0, nrow = mat_size, ncol = mat_size)
+  
+  
+  #transpose x to make computation more efficient
+  #each row of x is now attribute, each column = tuple of values
+  tx = t(x)
+  
+  #fill mat with distances between each object
+  
+  for (i in 1:mat_size){
+    u = tx[,i]
+    for (j in i:mat_size){
+      v = tx[,j]
+      mat[i,j] = wabs_dist(u,v,w)
+      mat[j,i] = mat[i,j]
+    }#end inner for
+    
+  }#end outer for
+  
+  return (mat)
+} #end function create_dm
+
+sub_zpima = zpima[,1:8] #subset containing first 8 attributes of zpima sub_zpima
+
+zpima_dist = create_dm(sub_zpima)
+#END QUESTION 3
+
+
+#QUESTION 4: Create linear model that predicts the 9th attribute using first 8 attributes
+lin_mod = lm(zpima$class_var ~ ., zpima)
+lin_mod
+#END QUESTION 4
+
+
+#QUESTION 5: k-means and PAM
+#kmeans5 = k-means with k = 5, kmeans8 = k-means with k = 8
+set.seed(7) # to make reproducible result
+kmeans5 = kmeans(x = sub_zpima, centers = 5, nstart = 20)
+set.seed(7) # to make reproducible result
+kmeans8 = kmeans(sub_zpima, centers = 8, nstart = 20)
+
+purity_kmeans5 = purity(kmeans5$cluster, zpima$class_var) 
+purity_kmeans8 = purity(kmeans8$cluster, zpima$class_var) 
+#print out results ofpurity
+cat ("The purity of kmeans with 5 clusters: ", purity_kmeans5)
+cat ("The purity of kmeans with 8 clusters: ", purity_kmeans8)
+
+#print out results of centroids
+kmeans_centers_display <- function (cluster){
+  centers = cluster$centers
+  c_names = colnames(centers)
+  
+  cat("Cluster centers is tuple \n (")
+  for (i in 1:dim(centers)[2]){
+    if (i == dim(centers)[2])
+      cat (c_names[i], ")")
+    else
+      cat (c_names[i], ",")
+  }#end for
+
+  
+  for (i in 1:dim(centers)[1]){ #print each cluster's center
+    cat ("\nCluster", i, ": (")
+    for (j in 1:dim(centers)[2]){ #print each value of each center
+      if (j == dim(centers)[2])
+        cat (centers[i,j], ")")
+      else
+        cat (centers[i,j], ",")
+      
+    }# end inner for
+   
+  }# end outer for
+  
+}#end function kmeans_centers_display
+
+kmeans_centers_display(kmeans5)
+kmeans_centers_display(kmeans8)
+
+
+#3 results from PAM with 3 different weights: 
+#w1 = (1,1,1,1,1,1,1,1) = zpima_dist ,
+#w2 = (0.2,1,0,0,0,1,0.2.0.2) = zpima_dist2 ,
+#w3 = (0,1,0,1,0,1,0,0) = zpima_dist3
+w2 = c(0.2,1,0,0,0,1,0.2,0.2)
+w3 = c(0,1,0,1,0,1,0,0)
+zpima_dist2 = create_dm(sub_zpima, w2)
+zpima_dist3 = create_dm(sub_zpima, w3)
+
+#Calculate PAMs for w1 w2 w3
+set.seed(7)
+pam1 = pam(x = zpima_dist, k = 5, diss = T)
+set.seed(8)
+pam2 = pam(x = zpima_dist2, k = 5, diss = T)
+set.seed(9)
+pam3 = pam(x = zpima_dist3, k = 5, diss = T)
+
+#re-attach original data to pams for visualization purpose
+pam1$data = sub_zpima[c(2,6)]
+pam2$data = sub_zpima[c(2,6)]
+pam3$data = sub_zpima[c(2,6)]
+
+
+#purity for each pam1 pam2 pam3
+cat("Purity of PAM with k = 5 with weight (1,1,1,1,1,1,1,1): ", purity(pam1$clustering, zpima$class_var))
+cat("Purity of PAM with k = 5 with weight (0.2,1,0,0,0,1,0.2,0.2): ", purity(pam2$clustering, zpima$class_var))
+cat("Purity of PAM with k = 5 with weight (0,1,0,1,0,1,0,0): ", purity(pam3$clustering, zpima$class_var))
+
+#print medoidss info of PAMs:
+pam1$medoids
+pam2$medoids
+pam3$medoids
+
+#VISUALIZING
+#visualize kmeans5, kmeans 8
+#par(mfrow = c(2,1))
+fviz_cluster(kmeans5,data = sub_zpima[c(2,6)], main = "Kmeans plot for k =5", geom = "point", ggtheme = theme_classic())
+fviz_cluster(kmeans8,data = sub_zpima[c(2,6)], main = "Kmeans plot for k =8", geom = "point")
+
+#visualize PAM with w1 w2 w3
+fviz_cluster(pam1, main ="PAM plot for k=5 with weight (1,1,1,1,1,1,1,1)", geom = "point")
+fviz_cluster(pam2, main ="PAM plot for k=5 with weight (0.2,1,0,0,0,1,0.2,0.2)", geom = "point")
+fviz_cluster(pam3, main ="PAM plot for k=5 with weight(0,1,0,1,0,1,0,0)", geom = "point")
+
+
+
+#Function to calculate purity of each cluster
+purity_of_each_cluster <- function(cluster, k){
+  
+  clustering_type = (class(cluster))[1] #get the name of clustering algorithm
+  
+  if(clustering_type == "dbscan_fast") #if DBSCAN, ignore cluster 0 - outlier cluster
+    k = length(table(optimal_result$cluster)) - 1
+  
+  #first create dataframe with only 2 columns of zpima class_val and the "ground truths"
+  #nElements is number of elements of majority class
+  #cluster_name is the name (a number) of the majority class
+  if (clustering_type == "kmeans" || clustering_type == "dbscan_fast"){ # if it is kmeans or dbscan
+    df = data.frame(cluster$cluster,pima$class_var)
+    nElements = max(table(cluster$cluster)) 
+    cluster_name = which(table(cluster$cluster) == nElements)
+  }
+  else{ #if it is PAM
+    df = data.frame(cluster$clustering,pima$class_var)
+    nElements = max(table(cluster$clustering))
+    cluster_name = which(table(cluster$clustering) == nElements)
+  }
+  
+ 
+  colnames(df) = c("assignment", "groundtruth")
+  
+  
+  cat("Purity of each cluster for ", clustering_type," with k = ", k, ": \n")
+  
+  for (i in 1:k){
+    #sub_df = df that contains only assigments and ground truths of cluster #i
+    sub_df = df[df$assignment == i, ]
+    cat("The purity of cluster ", i, ": ", purity(sub_df$assignment, sub_df$groundtruth), "\n")
+    
+  }#end for
+  
+  #Also display majority class
+  cat("Majority class is class ", cluster_name , " with ", nElements, " elements.\n")
+  
+  
+}#end purity_of_each_cluster result
+
+
+#Display the purity of each cluster from results of kmeans and pam
+purity_of_each_cluster(kmeans5,5)
+purity_of_each_cluster(kmeans8,8)
+purity_of_each_cluster(pam1,5)
+purity_of_each_cluster(pam2,5)
+purity_of_each_cluster(pam3,5)
+#END QUESTION 5
+
+
+#QUESTION 6: DBSCAN
+#we want optimal result to have less than  20% outliers and have max purity
+mPurity = 0 #initialize desired purity
+
+set.seed(7) #produce reducible result
+for (mMinPts in 2:4){ #minpts is in range of 2 and 5
+  for (mEps in seq(1, 2, by = 0.001)){ #eps is in between 1 and 3, incrementing by 0.1
+    temp_result = dbscan::dbscan(sub_zpima, eps = mEps, minPts = mMinPts)
+    temp_purity1 = purity(temp_result$cluster, zpima$class_var, T)[1]
+    temp_outlier1 = purity(temp_result$cluster, zpima$class_var, T)[2]
+    mClasses = length(table(temp_result$cluster)) #make a table of clusters achieved
+    
+    if(mClasses > 3 && mClasses < 14 && temp_outlier1 < .2 && temp_purity1 > mPurity) { #if have at least 4 clusters(first one is outlier) and percentage of outliers is < 20%
+        mPurity = temp_purity1
+        optimal_result = temp_result
+    }#end outer if
+   
+     
+ }#end inner for loop
+}#end outer for loop
+
+#Result and visualizing DBSCAN result
+print(optimal_result)
+fviz_cluster(optimal_result, data = zpima[c(2,6)], geom = "point",
+             main = "Result of acquired cluster on zpima dataset using DBSCAN")
+
+cat("Purity for DBScan result = (purity, outlier) =", purity(optimal_result$cluster, zpima$class_var, T))
+
+purity_of_each_cluster(optimal_result)
+#END QUESTION 6
+
+
+#QUESTION 7
+#Run K-means with nstart=20 for k=9 and k=12 for the Diamond9 dataset; 
+#visualize the results, compute their purity, 
+#and discuss the obtained clustering results and its quality
+diamond9 <- read_csv("diamond9.txt", col_names = FALSE)
+colnames(diamond9) = c("x","y","class")
+sub_diamond9 = diamond9[c(1,2)]
+
+set.seed(7)
+kmeans9 = kmeans(x = sub_diamond9, centers = 9, nstart = 20)
+set.seed(7)
+kmeans12 = kmeans(x = sub_diamond9, centers = 12, nstart = 20)
+
+#Visualizations
+fviz_cluster(kmeans9, data = sub_diamond9, geom = "point",
+             main = "Kmeans for Diamond9 with k = 9, nstart = 20")
+fviz_cluster(kmeans12, data = sub_diamond9, geom = "point",
+             main = "Kmeans for Diamond9 with k = 12, nstart = 20")
+
+#Print out purity for kmeans9 and kmeans12
+cat("Purity of Kmeans for Diamond9 (k = 9, nstart = 20): ", purity(kmeans9$cluster, diamond9$class))
+cat("Purity of Kmeans for Diamond9 (k = 12, nstart = 20): ", purity(kmeans12$cluster, diamond9$class))
+#END QUESTION 7
+
+
+
+#QUESTION 8
+set.seed(7)
+mPurity2 = 0
+#because the diamonds are scattered evenly, we can find "centers" of cluster 
+#by taking 1/3[max(y) - min(y)] and 1/3[max(x) - min(x)]
+smaller_lim = ifelse (max(diamond9$x) - min(diamond9$x) < max(diamond9$y) - min(diamond9$y),
+              max(diamond9$x) - min(diamond9$x),max(diamond9$y) - min(diamond9$y))
+#lim_eps = limit for radius/ epsilon
+#calculate by dividing smaller_lim by 6
+lim_eps = smaller_lim/6 
+
+#Pick minpoints range from 2 to 5
+for (mMinPts2 in seq(2, 5, by = 1)){
+  #epsilon is from 0.01 to lim_eps
+  for (mEps2 in seq(0, lim_eps, by = 0.005)){
+    #store temporary dbscan result with mMinPts2 and mEps2 
+    temp_result = dbscan(sub_diamond9, eps = mEps2, minPts = mMinPts2)
+    
+    #store temporary purity from the above result
+    temp_purity = purity(temp_result$cluster, diamond9$class, T)[1]
+    #store temporary outlier percentage from above result
+    temp_outlier = purity(temp_result$cluster, diamond9$class, T)[2]
+    #Limit the number of classes in our DBSCAN result 
+    mClasses = length(table(temp_result$cluster))
+
+    #optimal result is the one that has
+    #better purity, less than 10% outlier and have less than 20 classes
+    if (temp_purity > mPurity2 && temp_outlier < .1 && mClasses < 20){
+     
+      optimal_result2 = temp_result
+      mPurity2 = temp_purity
+      
+    }# end if
+    
+    
+  }#end inner loop
+ 
+}#end outer loop
+
+#Display the optimal result
+print(optimal_result2)
+#plot the DBSCAN of above optimal result
+fviz_cluster(optimal_result2, data = diamond9[c(1,2)], geom = "point", 
+             main = "Cluster Plot using DBSCAN for diamond9 dataset")
+#Print out purity and percentage of outlier from above result
+cat("Purity for DBSCAN result = (purity, outlier) =", purity(optimal_result2$cluster, diamond9$class, T))
+#END QUESTION 8
+#END PROJECT 2
