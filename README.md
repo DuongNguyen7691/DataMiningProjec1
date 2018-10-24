@@ -1,49 +1,66 @@
-COSC 4335 “Data Mining” Fall 2018
-Assignment1: (Exploratory) Data Analysis 
-for a Portuguese School Performance Dataset
-Individual Assignment
+University of Houston
+Assignment2 COSC 4335 Spring 2018
+Similarity Assessment, Clustering and Using Clustering to Create Background Knowledge for Classification Tasks
+Individual Project 
 
 Learning Objectives:
-1.	Learn how to manage and preprocess datasets  and how to compute basic statistics and to create basic data visualizations (using R)
-2.	Learn how to interpret popular displays, such as histograms, scatter plots, box plots, density plots,…
-3.	Get some practical experience in exploratory data analysis
-4.	Learn how to create background knowledge for a dataset 
-5.	Learn how to deal with nominal attributes in conjuction with methods that learn numerical models
-6.	Learn to distinguish expected from unexpected results in data analysis and data mining—in general, this task is quite challenging, as it requires background knowledge with respect to the employed data mining technique, domain knowledge, and also practical experience.
+1.	Learn to use popular clustering algorithms, namely K-means, K-medoids/PAM and DBSCAN 
+2.	Learn how to summarize and interpret clustering results
+3.	Learn to write R functions which operate on the top of clustering algorithms and clustering results
+4.	Learning how to make sense of unsupervised data mining results
+5.	Learn how clustering can be used to create useful background knowledge and classification problems. 
+6.	Learn how to create distance function and distance matrices in R and learn about their importance for clustering.
+Datasets: In this project we will use the  Diamond9 dataset  which is a 2D dataset with ; it can be downloaded at: http://www2.cs.uh.edu/~ml_kdd/restored just click on the Dataset link, and download the file called Diamond9.data) and the cleaned Pima Indian dataset (the original can be found at: https://archive.ics.uci.edu/ml/datasets/pima+indians+diabetes) which is a “null-value cleaned” version of the original dataset, called Pima dataset, in the following which can be found at: http://www2.cs.uh.edu/~ceick/UDM/Pima.csv
 
-Download the School Performance  dataset  from https://archive.ics.uci.edu/ml/datasets/Student+Performance; however, we will only use the following attributes of the Dataset and only will analyze the student-por.csv dataset at: http://www2.cs.uh.edu/~ceick/UDM/student-por.csv  We call this Reduced School Performance Dataset, RSP for short: 
-8 Fedu - father's education (numeric: 0 - none, 1 - primary education (4th grade), 2 â€“ 5th to 9th grade, 3 â€“ secondary education or 4 â€“ higher education) 
-9 Mjob - mother's job (nominal: 'teacher', 'health' care related, civil 'services' (e.g. administrative or police), 'at_home' or 'other') 
-11 reason - reason to choose this school (nominal: close to 'home', school 'reputation', 'course' preference or 'other') 
-14 studytime - weekly study time (numeric: 1 - <2 hours, 2 - 2 to 5 hours, 3 - 5 to 10 hours, or 4 - >10 hours) 
-15 failures - number of past class failures (numeric: n if 1<=n<3, else 4) 
-26 goout - going out with friends (numeric: from 1 - very low to 5 - very high) 
-30 absences - number of school absences (numeric: from 0 to 93) 
-# these grades are related with the course subject Portuguese: 
-31 G1 - first period grade (numeric: from 0 to 20) 
-31 G2 - second period grade (numeric: from 0 to 20) 
-32 G3 - final grade (numeric: from 0 to 20, output target)
+The Pima dataset has 8 numerical attributes and a binary class variable (1 indicates that the person is assumed to have diabetes), indicating the following information: 
+1. Number of times pregnant 
+2. Plasma glucose concentration a 2 hours in an oral glucose tolerance test 
+3. Diastolic blood pressure (mm Hg) 
+4. Triceps skin fold thickness (mm) 
+5. 2-Hour serum insulin (mu U/ml) 
+6. Body mass index (weight in kg/(height in m)^2) 
+7. Diabetes pedigree function 
+8. Age (years) 
+9. Class variable (0 or 1) 
 
-The first 5 Examples in the RSP dataset:
+5 Examples in the modified Pima Indians Diabetes Dataset:
+6,148,72,35,156,33.6,0.627,50,1
+1,85,66,29,156,26.6,0.351,31,0
+8,183,64,29,156,23.3,0.672,32,1
+1,89,66,23,94,28.1,0.167,21,0
+0,137,40,35,168,43.1,2.288,33,1
 
-4;"at_home";"course";2;0;4;4;0;11;11
-1;"at_home";"course";2;0;3;2;9;11;11
-1;"at_home";"other";2;0;2;6;12;13;12
-2;"health";"home";3;0;2;0;14;14;14
-3;"other";"home";2;0;2;0;11;13;13
+Assignment2 Tasks:
+0. Transform the Pima dataset into a dataset ZPima by z-scoring the first 8 attributes of the dataset, and copying the 9th attribute of the dataset *
 
-Tasks:
+1. Write an R-function purity(a,b,outliers=FALSE) that computes the purity of a clustering result based on an apriori given set of class labels, where a gives the assignment of objects in O to clusters, and b is the “ground truth”.  Purity is defined as follows: Let 
+O be a dataset
+X={C1,…,Ck} be a clustering of O with CiO (for i=1,…,k), C1…CkO   and CiCj= (for i j)
 
-Apply the following exploratory data analysis techniques using R to the dataset:
-0.	Compute the mean value and standard deviation for attributes G1, G2, G3.   Remove 0’s that do not make sense prior to computing these statistics.  1 point
-1.	Compute the covariance matrix for attributes G1, G2, and G3 next, compute the correlations for each of the 3 pairs of the 4attributes. Interpret the statistical findings! Remove 0’s that do not make sense prior to computing the covariance matrix and correlations.   6  points
-2.	Create a scatter plot for attributes G1 and G3 of your dataset and a second scatter plot for attributes G1 and G2. Interpret the two scatter plots! 6 points
-3.	Create histograms for attributes Mjob. Fedu, studytime, failures, and goout. Then create the same histograms for the 5 attributes for students with G3>12 and for students with G312; interpret the obtained 15 histograms. 9 points 
-4.	Create box plots for the attributes absences. G1, G2, G3. Remove null values that do not make sense prior to computing the box plots.  Interpret and compare the obtained 4 boxplots!  6 points 
-5.	Create scatter plots with the dependent variable G3 and the attributes studytime, failures, gooout, and absences. Interpret the obtained 4 plots for the 4 pairs of attributes—G3 and each of the four attributes . 4 points
-6.	Create 2-D Histograms for Fedu and Mjob, for gout and failures and for studytime and G3 and study time. Interpret the obtained displays  6 points
-7.	Fit a linear model that predicts the dependent variable G3 using the 7 numerical attributes as independent variables, and transform the two nominal attribute Mjob and reason into 9 binary attributes  which are also considered to be independent variables. That is you have 16 independent variables total to prediction G3. Next, z-score the obtained dataset, and fit a linear model to the z-scored dataset.  Report the R2 of the obtained linear model and the coefficients of each attribute in the obtained regression function.  Next, drop G2 and 5 more attributes, whose coefficients are the closest to 0, and obtain a linear model using the ten remaining attributes as independent variables. Next, interpret the results! What do the coefficients tell you about the importance of the attribute for final grade prediction? What about negative and positive coefficients? Also compare the two regression functions and their degree of fit they accomplished. 15 points 
- 
-8.	Add a column Grade to the RSP dataset (A; G3>15, B: G3=14or15, C: G3=12or13, D: G3=10or11, F: G3<10). Next. create 3 different decision tree models that predicts the Grade attribute and has 20 or less nodes  using the modified RSV dataset with attributes G2 and G3 excluded from training sets (total number of nodes should be less than 21 do not submit models with more than 20 nodes!); Explain how the 3 decision tree models were obtained. Report the training accuracy and the testing accuracy for each decision tree; interpret the learnt decision tree—what do they tell you about the importance of the 8 attributes in the used dataset for the classification problem? 14 points
-9.	Write a conclusion (at most 18 sentences!) summarizing the most important findings of the assignment—what did we learn about the dataset? In particular, address the findings obtained related to predicting the variable G3.  6 points  (and up to 4 extra points) 
+PUR(X)= (number_of_majority_class_examples(X)/(total_number_examples_in_clusters(X))
 
+If the used clustering algorithm supports outliers, outliers should be ignored in purity computations; you can assume that cluster 0 contains all the outliers, and clusters 1,2,…,k represent “true” clusters. If the parameter outliers is set to FALSE, the function just returns a floting point number of the observed purity, if parameter outliers is set to T the function returns a vector: (<purity>,<percentage_of_outliers); e.g. if the function returns (0.98, 0.2) this would indicate that the purity is 98%, but 20% of the objects in dataset O have been classified as outliers. ****
+
+2. Write an R-function wabs-dist(u,v,w) that takes two vectors u, v as an input and computes the distance between u and v as the sum of the absolute weighted differences—using the weights in w .*
+
+3 Write an R-function create-dm(x,w) that returns a distance matrix for the objects in dataframe x by calling the wabs-dist(a,b,w) for all pairs of objects a and b belonging to x. Next, call create-dm for the first 8 attributes of the dataset Zpima and save the obtained distance matrix, we call Zpima-dist.  ***
+
+4. Learn a linear model that predicts the 9th attribute using the first 8 attributes for the ZPima dataset. Interpret the obtained coefficents of the obtained linear model and access its quality and the importance of the 8 attributes. ***
+
+
+5. Run K-means on the ZPima dataset for k=5 and k=8 and nstart=20; next run PAM for k=5 with distance matrices that have been created using the following weight vectors for the ZPima dataset─obtaining 3 different PAM clustering results:
+a. (1,1,1,1,1,1,1,1)
+b. (0.2,1,0,0,0,1,0.2.0.2)
+c. (0,1,0,1,0,1,0,0)
+For the 5 obtained clustering results report the overall purity, the purity of each cluster, the majority class and the centroid/medoid of each cluster. Next, visualize the clustering result of the K-means run for k=5 and for the 3 PAM results in the Plasma glucose/Body mass index (Attribute 2&6 Space) for the original dataset . Interpret the obtained results! Does changing the distance metric affect the PAM results? Do the results tell you anything which attributes are important for diagnosing diabetes, and about the difficulty diagnosing diabetes? *********
+
+
+6. Run DBSCAN on the ZPima dataset; try to find values for MinPoints and epsilon parameters, such that the number of outliers is less than 20% and the number of clusters is between 3 and 13; visualize the obtained clustering result in the Plasma glucose/Body mass index attribute Space on the original dataset and report its purity. Comment on the quality of the obtained clustering result. ***
+
+
+7. Run K-means with nstart=20 for k=9 and k=12 for the Diamond9 dataset; visualize the results, compute their purity, and discuss the obtained clustering results and its quality.** 
+
+
+8. Next, run DBSCAN for the Diamond9 dataset; try to find “good” parameter settings  for epsilon and Minpoints such that purity of the obtained clustering result is maximized and the number of outliers is less than 10% . Visualize the “best” clustering result you found, report the epsilon and Minpoint parameters you used to obtain this clustering result and report  its purity. Results with higher purity will receive higher scores; students that find the “best” result will get extra credit! ****(and up to ** extra credit for the “best”
+ solution).  Also compare the DBSCAN results with those you obtained for K-means in Task 7!
+9. Summarize to which extend the K-Means and DBSCAN where able to rediscover the classes in the Diamond9 and Pima/ZPima datasets! Moreover, did your expermental results reveal anythign interesting about diabetes? ***
