@@ -1,7 +1,3 @@
-University of Houston
-Assignment2 COSC 4335 Spring 2018
-Similarity Assessment, Clustering and Using Clustering to Create Background Knowledge for Classification Tasks
-Individual Project 
 
 Learning Objectives:
 1.	Learn to use popular clustering algorithms, namely K-means, K-medoids/PAM and DBSCAN 
